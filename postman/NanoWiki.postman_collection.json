@@ -1,0 +1,181 @@
+{
+	"info": {
+		"name": "NanoWiki",
+		"_postman_id": "470e0670-9fc6-19dc-0f02-211e3243f7b7",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get All Documents",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "{{base-url}}/documents",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"documents"
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Get Document All Revisions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "{{base-url}}/documents/{{doc-a-title}}",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"documents",
+						"{{doc-a-title}}"
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Get Document Revision",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "{{base-url}}/documents/{{doc-a-title}}/{{doc-a-timestamp-a}}",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"documents",
+						"{{doc-a-title}}",
+						"{{doc-a-timestamp-a}}"
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Get Document Latest Revision",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "{{base-url}}/documents/{{doc-a-title}}/latest",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"documents",
+						"{{doc-a-title}}",
+						"latest"
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Document",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "{{base-url}}/documents/{{doc-a-title}}",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"documents",
+						"{{doc-a-title}}"
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Create Document Version",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"content\": \"Test.\"\n}\n"
+				},
+				"url": {
+					"raw": "{{base-url}}/documents/{{doc-a-title}}",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"documents",
+						"{{doc-a-title}}"
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "100766e8-7519-4489-af51-921d97626bfa",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "4d2bcf5f-fb12-4339-bca9-97af4e539b87",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "6e046b87-9156-4516-ba62-7cad1907c348",
+			"key": "base-url",
+			"value": "http://localhost:5000",
+			"type": "text"
+		},
+		{
+			"id": "44165398-3838-44ef-bf20-1926a2076b8b",
+			"key": "doc-a-title",
+			"value": "foo",
+			"type": "text"
+		},
+		{
+			"id": "44633180-3780-4d83-9cba-657d91d8022d",
+			"key": "doc-a-timestamp-a",
+			"value": "bar",
+			"type": "text"
+		}
+	]
+}
