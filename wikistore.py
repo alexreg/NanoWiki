@@ -3,11 +3,18 @@ from datetime import datetime
 from enum import Enum, auto
 import fcntl
 from functools import wraps
+import os
 from pathlib import Path
 import shutil
 import uuid
 
-def _get_mtime(stat):
+def _get_mtime(file):
+	if hasattr(file, "stat"):
+		stat = file.stat()
+	elif hasattr(file, "fileno"):
+		stat = os.stat(file.fileno())
+	else:
+		stat = file
 	return datetime.fromtimestamp(stat.st_mtime)
 
 def _check_doc_exists(path):
@@ -99,18 +106,22 @@ class DocumentRevision(DocumentRevisionInfo):
 class WikiStore:
 	def __init__(self, path):
 		self.path = path if isinstance(path, Path) else Path(path)
-		
 		self.path.mkdir(parents = True, exist_ok = True)
 	
 	def list_docs(self):
-		for child in self.path.iterdir():
-			if child.is_dir:
-				stat = child.stat()
-				yield DocumentInfo(child.name, _get_mtime(stat))
+		with _lock_file(self.path, 's') as file:
+			def _list_docs():
+				for doc_path in self.path.iterdir():
+					if doc_path.is_dir():
+						yield DocumentInfo(doc_path.name, _get_mtime(doc_path.stat()))
+			
+			return _list_docs(), _get_mtime(file)
 	
 	def create_doc(self, title):
-		with _lock_file(self.path, 'x'):
-			_check_doc_not_exists(self.path / title).mkdir()
+		with _lock_file(self.path, 'x') as file:
+			path = self.path / title
+			_check_doc_not_exists(path).mkdir()
+			return _get_mtime(file)
 	
 	def delete_doc(self, title):
 		with _lock_file(self.path, 'x'):
@@ -121,36 +132,39 @@ class WikiStore:
 	
 	def get_doc_info(self, title):
 		path = self.path / title
-		with _lock_file(path, 's'):
-			stat = _check_doc_exists(path).stat()
-			return DocumentInfo(title, _get_mtime(stat))
+		with _lock_file(path, 's') as file:
+			_check_doc_exists(path)
+			return DocumentInfo(title, _get_mtime(file))
 	
 	def list_doc_revs(self, title):
-		path = self.path / title
-		with _lock_file(path, 's'):
-			for child in _check_doc_exists(path).iterdir():
-				if child.is_file():
-					stat = child.stat()
-					yield DocumentRevisionInfo(child.name, _get_mtime(stat))
+		doc_path = self.path / title
+		with _lock_file(doc_path, 's') as doc_file:
+			_check_doc_exists(doc_path)
+			
+			def _list_doc_revs():
+				for path in doc_path.iterdir():
+					if path.is_file():
+						yield DocumentRevisionInfo(path.name, _get_mtime(path))
+			
+			return _list_doc_revs(), _get_mtime(doc_file)
 	
 	def get_doc_rev(self, title, revision = "latest"):
-		path = self.path / title
-		with _lock_file(path, 's'):
-			_check_doc_exists(self.path / title)
+		doc_path = self.path / title
+		with _lock_file(doc_path, 's') as doc_file:
+			_check_doc_exists(doc_path)
 			
 			def get_latest_revision():
-				return max((self.path / title).iterdir(), key = lambda c: _get_mtime(c.stat()))
+				return max(doc_path.iterdir(), key = lambda c: _get_mtime(c.stat()))
 			
-			path = get_latest_revision() if revision == "latest" else self.path / title / revision
-			stat = _check_doc_rev_exists(path).stat()
-			with path.open('r') as file:
-				return DocumentRevision(path.name, _get_mtime(stat), file.read())
+			path = get_latest_revision() if revision == "latest" else doc_path / revision
+			with _check_doc_rev_exists(path).open('r') as file:
+				return DocumentRevision(path.name, _get_mtime(file), file.read())
 	
 	def create_doc_rev(self, title, content):
-		path = self.path / title
-		with _lock_file(path, 'x'):
-			_check_doc_exists(self.path / title)
+		doc_path = self.path / title
+		with _lock_file(doc_path, 'x') as doc_file:
+			_check_doc_exists(doc_path)
 			revision = str(uuid.uuid4())
-			with (self.path / title / revision).open('x') as file:
+			with (doc_path / revision).open('x') as file:
 				file.write(content)
-			return revision
+				return DocumentRevisionInfo(revision, _get_mtime(file))

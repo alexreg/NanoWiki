@@ -20,6 +20,10 @@ To start the development server, run:
 
 The location of the wiki store on the filesystem can be configured using the `NANOWIKI_WIKI_PATH` environment variable.
 
+## Postman Tests
+
+[Postman](https://www.getpostman.com) tests can be found in the `postman/` directory.
+
 ## API
 
 TODO

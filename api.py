@@ -1,10 +1,13 @@
 from datetime import datetime
-from flask import Flask, Response, request
+from flask import Flask, Response, make_response, request
+import flask_etags
 from flask_restful import Api, Resource
 import flask_restful_patch
 from functools import wraps
+import hashlib
 from marshmallow import Schema, ValidationError, fields
 import os
+import pickle
 import traceback
 from wikistore import DocumentInfo, DocumentRevision, DocumentRevisionInfo, WikiStore, WikiStoreError, WikiStoreErrorType
 
@@ -66,6 +69,9 @@ def validate_title(title):
 		if len(title) > 50:
 			raise ValidationError("The given title is too long", "title")
 
+def create_etag(data):
+	return hashlib.sha1(pickle.dumps(data)).hexdigest()
+
 class DocumentInfoSchema(Schema):
 	title = fields.Str()
 	last_modified_time = fields.DateTime(format = datetime_format)
@@ -93,13 +99,21 @@ class Wiki(Resource):
 	
 	def get(self, title = None, revision = None):
 		if title is None:
-			return self.doc_info_schema.dump(self.wiki_store.list_docs(), many = True).data
+			output, last_modified_time = self.wiki_store.list_docs()
+			response = self.doc_info_schema.dump(output, many = True).data
 		else:
 			validate_title(title)
 			if revision is None:
-				return self.doc_rev_info_schema.dump(list(self.wiki_store.list_doc_revs(title)), many = True).data
+				output, last_modified_time = self.wiki_store.list_doc_revs(title)
+				response = self.doc_rev_info_schema.dump(output, many = True).data
 			else:
-				return self.doc_rev_schema.dump(self.wiki_store.get_doc_rev(title, revision)).data
+				output = self.wiki_store.get_doc_rev(title, revision)
+				last_modified_time = output.created_time
+				response = self.doc_rev_schema.dump(output).data
+		
+		return response, 200, {
+			"ETag": create_etag(last_modified_time),
+		}
 	
 	def delete(self, title):
 		validate_title(title)
@@ -112,9 +126,12 @@ class Wiki(Resource):
 		created = False
 		if not self.wiki_store.doc_exists(title):
 			created = True
-			self.wiki_store.create_doc(title)
-		self.wiki_store.create_doc_rev(title, data["content"])
-		return {}, 201 if created else 204
+			last_modified_time = self.wiki_store.create_doc(title)
+		output = self.wiki_store.create_doc_rev(title, data["content"])
+		
+		return self.doc_rev_info_schema.dump(output), 201 if created else 204, {
+			"ETag": create_etag(output.created_time),
+		}
 
 app = Flask(__name__)
 api = Api(app, catch_all_404s = True)
@@ -133,5 +150,3 @@ api.add_resource(
 
 if __name__ == "__main__":
 	app.run(debug = True)
-
-# TODO: Etags for all GETs
