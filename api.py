@@ -134,5 +134,4 @@ api.add_resource(
 if __name__ == "__main__":
 	app.run(debug = True)
 
-# TODO: Locking on files
 # TODO: Etags for all GETs
