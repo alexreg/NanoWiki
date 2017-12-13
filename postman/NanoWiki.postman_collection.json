@@ -180,19 +180,19 @@
 	],
 	"variable": [
 		{
-			"id": "d71c1ff0-43c4-4571-9f06-e5a039087378",
+			"id": "26bea64b-cef9-438b-8f44-2f910f995958",
 			"key": "base-url",
 			"value": "http://localhost:5000",
 			"type": "text"
 		},
 		{
-			"id": "a5f93821-562b-4e33-a852-a789d3181aa5",
+			"id": "bb7681c3-d447-4528-8455-9870171b6cd7",
 			"key": "doc-a-title",
 			"value": "foo",
 			"type": "text"
 		},
 		{
-			"id": "fe6a941c-7b02-4721-a1dd-c55482a0b53d",
+			"id": "f8bd714c-fc8a-46e8-8d1c-13fbaf2f9928",
 			"key": "doc-a-timestamp-a",
 			"value": "bar",
 			"type": "text"

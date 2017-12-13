@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
+from diff import ApplyPatchError, DeserializePatchError, apply_patch, create_patch
 from enum import Enum, auto
 import fcntl
 from functools import wraps
@@ -17,21 +18,6 @@ def _get_mtime(file):
 		stat = file
 	return datetime.fromtimestamp(stat.st_mtime)
 
-def _check_doc_exists(path):
-	if not path.exists():
-		raise WikiStoreError(WikiStoreErrorType.DOCUMENT_NOT_FOUND, path.name)
-	return path
-
-def _check_doc_rev_exists(path):
-	if not path.exists():
-		raise WikiStoreError(WikiStoreErrorType.DOCUMENT_REVISION_NOT_FOUND, path.parent.name, path.name)
-	return path
-
-def _check_doc_not_exists(path):
-	if path.exists():
-		raise WikiStoreError(WikiStoreErrorType.DOCUMENT_ALREADY_EXISTS, path.name)
-	return path
-
 # If `mode` is 's', then a shared lock is used.
 # If `mode` is `x`, then an exclusive lock is used.
 @contextmanager
@@ -44,7 +30,7 @@ def _lock_file(file, mode):
 		path = file.with_name(file.name + ".lock")
 		file = path.open('w')
 	else:
-		raise ValueError("`file` has invlaid type {}".format(type(file)))
+		raise ValueError("`file` has invalid type {}".format(type(file)))
 	
 	if mode == 's':
 		op = fcntl.LOCK_SH
@@ -104,6 +90,42 @@ class DocumentRevision(DocumentRevisionInfo):
 		self.content = content
 
 class WikiStore:
+	@staticmethod
+	def _check_doc_exists(path):
+		if not path.exists():
+			raise WikiStoreError(WikiStoreErrorType.DOCUMENT_NOT_FOUND, path.name)
+		return path
+	
+	@staticmethod
+	def _check_doc_rev_exists(path):
+		if not path.exists():
+			raise WikiStoreError(WikiStoreErrorType.DOCUMENT_REVISION_NOT_FOUND, path.parent.name, path.name)
+		return path
+	
+	@staticmethod
+	def _check_doc_not_exists(path):
+		if path.exists():
+			raise WikiStoreError(WikiStoreErrorType.DOCUMENT_ALREADY_EXISTS, path.name)
+		return path
+	
+	@staticmethod
+	def _get_doc_rev(doc_path, revision = "latest"):
+		revision == "latest" or __class__._check_doc_rev_exists(doc_path / revision)
+		
+		all_revisions = sorted(doc_path.iterdir(), key = lambda e: _get_mtime(e.stat()))
+		content = None
+		rev_path = None
+		for path in all_revisions:
+			rev_path = path
+			patch = path.read_text()
+			content = apply_patch(content, patch) if content else patch
+			if path.name == revision:
+				break
+		
+		if rev_path is None:
+			return None
+		return DocumentRevision(rev_path.name, _get_mtime(rev_path), content)
+	
 	def __init__(self, path):
 		self.path = path if isinstance(path, Path) else Path(path)
 		self.path.mkdir(parents = True, exist_ok = True)
@@ -120,12 +142,12 @@ class WikiStore:
 	def create_doc(self, title):
 		with _lock_file(self.path, 'x'):
 			path = self.path / title
-			_check_doc_not_exists(path).mkdir()
+			__class__._check_doc_not_exists(path).mkdir()
 			return _get_mtime(self.path)
 	
 	def delete_doc(self, title):
 		with _lock_file(self.path, 'x'):
-			shutil.rmtree(_check_doc_exists(self.path / title))
+			shutil.rmtree(__class__._check_doc_exists(self.path / title))
 	
 	def doc_exists(self, title):
 		return (self.path / title).exists()
@@ -133,16 +155,17 @@ class WikiStore:
 	def get_doc_info(self, title):
 		path = self.path / title
 		with _lock_file(path, 's'):
-			_check_doc_exists(path)
+			__class__._check_doc_exists(path)
 			return DocumentInfo(title, _get_mtime(path))
 	
 	def list_doc_revs(self, title):
 		doc_path = self.path / title
 		with _lock_file(doc_path, 's'):
-			_check_doc_exists(doc_path)
+			__class__._check_doc_exists(doc_path)
 			
 			def _list_doc_revs():
-				for path in doc_path.iterdir():
+				all_revisions = sorted(doc_path.iterdir(), key = lambda e: _get_mtime(e.stat()))
+				for path in all_revisions:
 					if path.is_file():
 						yield DocumentRevisionInfo(path.name, _get_mtime(path))
 			
@@ -151,20 +174,15 @@ class WikiStore:
 	def get_doc_rev(self, title, revision = "latest"):
 		doc_path = self.path / title
 		with _lock_file(doc_path, 's'):
-			_check_doc_exists(doc_path)
-			
-			def get_latest_revision():
-				return max(doc_path.iterdir(), key = lambda c: _get_mtime(c.stat()))
-			
-			path = get_latest_revision() if revision == "latest" else doc_path / revision
-			with _check_doc_rev_exists(path).open('r') as file:
-				return DocumentRevision(path.name, _get_mtime(file), file.read())
+			__class__._check_doc_exists(doc_path)
+			return __class__._get_doc_rev(doc_path, revision = revision)
 	
 	def create_doc_rev(self, title, content):
 		doc_path = self.path / title
 		with _lock_file(doc_path, 'x'):
-			_check_doc_exists(doc_path)
+			__class__._check_doc_exists(doc_path)
 			revision = str(uuid.uuid4())
+			latest_rev = __class__._get_doc_rev(doc_path, revision = "latest")
 			with (doc_path / revision).open('x') as file:
-				file.write(content)
+				file.write(create_patch(latest_rev.content if latest_rev else "", content) if latest_rev else content)
 				return DocumentRevisionInfo(revision, _get_mtime(file))
