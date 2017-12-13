@@ -10,7 +10,12 @@
 			"name": "Get All Documents",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "If-None-Match",
+						"value": "etag"
+					}
+				],
 				"body": {},
 				"url": {
 					"raw": "{{base-url}}/documents",
@@ -29,7 +34,12 @@
 			"name": "Get Document All Revisions",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "If-None-Match",
+						"value": "etag"
+					}
+				],
 				"body": {},
 				"url": {
 					"raw": "{{base-url}}/documents/{{doc-a-title}}",
@@ -49,7 +59,12 @@
 			"name": "Get Document Revision",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "If-None-Match",
+						"value": "etag"
+					}
+				],
 				"body": {},
 				"url": {
 					"raw": "{{base-url}}/documents/{{doc-a-title}}/{{doc-a-timestamp-a}}",
@@ -70,7 +85,12 @@
 			"name": "Get Document Latest Revision",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "If-None-Match",
+						"value": "etag"
+					}
+				],
 				"body": {},
 				"url": {
 					"raw": "{{base-url}}/documents/{{doc-a-title}}/latest",
@@ -160,19 +180,19 @@
 	],
 	"variable": [
 		{
-			"id": "6e046b87-9156-4516-ba62-7cad1907c348",
+			"id": "d71c1ff0-43c4-4571-9f06-e5a039087378",
 			"key": "base-url",
 			"value": "http://localhost:5000",
 			"type": "text"
 		},
 		{
-			"id": "44165398-3838-44ef-bf20-1926a2076b8b",
+			"id": "a5f93821-562b-4e33-a852-a789d3181aa5",
 			"key": "doc-a-title",
 			"value": "foo",
 			"type": "text"
 		},
 		{
-			"id": "44633180-3780-4d83-9cba-657d91d8022d",
+			"id": "fe6a941c-7b02-4721-a1dd-c55482a0b53d",
 			"key": "doc-a-timestamp-a",
 			"value": "bar",
 			"type": "text"

@@ -55,7 +55,7 @@ def _lock_file(file, mode):
 	
 	try:
 		fcntl.flock(file, op)
-		yield file
+		yield
 	finally:
 		fcntl.flock(file, fcntl.LOCK_UN)
 		if should_close:
@@ -109,19 +109,19 @@ class WikiStore:
 		self.path.mkdir(parents = True, exist_ok = True)
 	
 	def list_docs(self):
-		with _lock_file(self.path, 's') as file:
+		with _lock_file(self.path, 's'):
 			def _list_docs():
 				for doc_path in self.path.iterdir():
 					if doc_path.is_dir():
 						yield DocumentInfo(doc_path.name, _get_mtime(doc_path.stat()))
 			
-			return _list_docs(), _get_mtime(file)
+			return _list_docs(), _get_mtime(self.path)
 	
 	def create_doc(self, title):
-		with _lock_file(self.path, 'x') as file:
+		with _lock_file(self.path, 'x'):
 			path = self.path / title
 			_check_doc_not_exists(path).mkdir()
-			return _get_mtime(file)
+			return _get_mtime(self.path)
 	
 	def delete_doc(self, title):
 		with _lock_file(self.path, 'x'):
@@ -132,13 +132,13 @@ class WikiStore:
 	
 	def get_doc_info(self, title):
 		path = self.path / title
-		with _lock_file(path, 's') as file:
+		with _lock_file(path, 's'):
 			_check_doc_exists(path)
-			return DocumentInfo(title, _get_mtime(file))
+			return DocumentInfo(title, _get_mtime(path))
 	
 	def list_doc_revs(self, title):
 		doc_path = self.path / title
-		with _lock_file(doc_path, 's') as doc_file:
+		with _lock_file(doc_path, 's'):
 			_check_doc_exists(doc_path)
 			
 			def _list_doc_revs():
@@ -146,11 +146,11 @@ class WikiStore:
 					if path.is_file():
 						yield DocumentRevisionInfo(path.name, _get_mtime(path))
 			
-			return _list_doc_revs(), _get_mtime(doc_file)
+			return _list_doc_revs(), _get_mtime(doc_path)
 	
 	def get_doc_rev(self, title, revision = "latest"):
 		doc_path = self.path / title
-		with _lock_file(doc_path, 's') as doc_file:
+		with _lock_file(doc_path, 's'):
 			_check_doc_exists(doc_path)
 			
 			def get_latest_revision():
@@ -162,7 +162,7 @@ class WikiStore:
 	
 	def create_doc_rev(self, title, content):
 		doc_path = self.path / title
-		with _lock_file(doc_path, 'x') as doc_file:
+		with _lock_file(doc_path, 'x'):
 			_check_doc_exists(doc_path)
 			revision = str(uuid.uuid4())
 			with (doc_path / revision).open('x') as file:
