@@ -26,4 +26,30 @@ The location of the wiki store on the filesystem can be configured using the `NA
 
 ## API
 
-TODO
+The API follows the REST standard, and includes the following endpoints. All data is exchanged using the JSON format.
+
+* `GET /documents`
+  
+  Returns information about all documents in the wiki.
+  
+* `GET /documents/{title}`
+  
+  Returns all revisions of the document with title `{title}`.
+  
+* `GET /documents/{title}/{revision}`
+  
+  Returns the revision with ID `{revision}` of the document with title `{title}`. If `{revision}` is `latest`, then it returns the most recent revision.
+  
+* `DELETE /documents/{title}`
+  
+  Deletes the document with title `{title}`.
+  
+* `POST /documents/{title}`
+  
+  ```json
+  {
+      "content": "{content}"
+  }
+  ```
+  
+  Creates a document with title `{title}`, or a new revision of the existing document with that title. Updates the content of the document to `{content}`.
