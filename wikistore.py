@@ -1,6 +1,6 @@
+import bsdiff4
 from contextlib import contextmanager
 from datetime import datetime
-from diff import ApplyPatchError, DeserializePatchError, apply_patch, create_patch
 from enum import Enum, auto
 import fcntl
 from functools import wraps
@@ -117,14 +117,14 @@ class WikiStore:
 		rev_path = None
 		for path in all_revisions:
 			rev_path = path
-			patch = path.read_text()
-			content = apply_patch(content, patch) if content else patch
+			patch = path.read_bytes()
+			content = bsdiff4.patch(content, patch) if content else patch
 			if path.name == revision:
 				break
 		
 		if rev_path is None:
-			return None
-		return DocumentRevision(rev_path.name, _get_mtime(rev_path), content)
+			return None, None
+		return rev_path, content
 	
 	def __init__(self, path):
 		self.path = path if isinstance(path, Path) else Path(path)
@@ -175,14 +175,18 @@ class WikiStore:
 		doc_path = self.path / title
 		with _lock_file(doc_path, 's'):
 			__class__._check_doc_exists(doc_path)
-			return __class__._get_doc_rev(doc_path, revision = revision)
+			path, content = __class__._get_doc_rev(doc_path, revision = revision)
+			if path is None:
+				return None
+			return DocumentRevision(path.name, _get_mtime(path), content.decode())
 	
 	def create_doc_rev(self, title, content):
 		doc_path = self.path / title
 		with _lock_file(doc_path, 'x'):
 			__class__._check_doc_exists(doc_path)
 			revision = str(uuid.uuid4())
-			latest_rev = __class__._get_doc_rev(doc_path, revision = "latest")
-			with (doc_path / revision).open('x') as file:
-				file.write(create_patch(latest_rev.content if latest_rev else "", content) if latest_rev else content)
+			_, latest_rev = __class__._get_doc_rev(doc_path, revision = "latest")
+			with (doc_path / revision).open('xb') as file:
+				content = content.encode()
+				file.write(bsdiff4.diff(latest_rev if latest_rev else b"", content) if latest_rev else content)
 				return DocumentRevisionInfo(revision, _get_mtime(file))
