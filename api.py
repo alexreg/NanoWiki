@@ -77,31 +77,30 @@ class WikiStoreHttpError(HTTPException):
 class WikiResource(Resource):
 	method_decorators = {
 		"*": [],
+		"get": [etag_request],
 		"put": [_parse_json],
 		"post": [_parse_json],
 	}
 	
 	def __init__(self, *, wiki_store):
 		self.wiki_store = wiki_store
+
+class WikiDocumentResource(WikiResource):
+	def __init__(self, *, wiki_store):
+		super().__init__(wiki_store = wiki_store)
 		
 		self.doc_info_schema = DocumentInfoSchema(strict = True)
-		self.doc_rev_info_schema = DocumentRevisionInfoSchema(strict = False)
 		self.doc_rev_schema = DocumentRevisionSchema(strict = True)
+		self.doc_rev_info_schema = DocumentRevisionInfoSchema(strict = False)
 	
-	@etag_request
 	def get(self, title = None, revision = None):
 		if title is None:
 			output, last_modified_time = self.wiki_store.list_docs()
 			response = self.doc_info_schema.dump(output, many = True).data
 		else:
 			_validate_title(title)
-			if revision is None:
-				output, last_modified_time = self.wiki_store.list_doc_revs(title)
-				response = self.doc_rev_info_schema.dump(output, many = True).data
-			else:
-				output = self.wiki_store.get_doc_rev(title, revision)
-				last_modified_time = output.created_time
-				response = self.doc_rev_schema.dump(output).data
+			output, last_modified_time = self.wiki_store.list_doc_revs(title)
+			response = self.doc_rev_info_schema.dump(output, many = True).data
 		
 		return api.make_response(response, 200, etag = last_modified_time)
 	
@@ -121,6 +120,21 @@ class WikiResource(Resource):
 		output = self.wiki_store.create_doc_rev(title, data["content"])
 		
 		return api.make_response(self.doc_rev_info_schema.dump(output).data, 201 if created else 200, etag = output.created_time)
+
+class WikiDocumentRevisionResource(WikiResource):
+	def __init__(self, *, wiki_store):
+		super().__init__(wiki_store = wiki_store)
+		
+		self.doc_info_schema = DocumentInfoSchema(strict = True)
+		self.doc_rev_info_schema = DocumentRevisionInfoSchema(strict = False)
+		self.doc_rev_schema = DocumentRevisionSchema(strict = True)
+	
+	def get(self, title = None, revision = None):
+		_validate_title(title)
+		output = self.wiki_store.get_doc_rev(title, revision)
+		last_modified_time = output.created_time
+		
+		return api.make_response(self.doc_rev_schema.dump(output).data, 200, etag = last_modified_time)
 
 class WikiApi(Api):
 	def __init__(self, *args, **kwargs):
@@ -147,9 +161,16 @@ api = WikiApi(app, catch_all_404s = True)
 wiki_store = WikiStore(os.getenv("NANOWIKI_WIKI_PATH", "wiki-store"))
 
 api.add_resource(
-	WikiResource,
+	WikiDocumentResource,
 	"/documents",
 	"/documents/<string:title>",
+	resource_class_kwargs = {
+		"wiki_store": wiki_store
+	},
+)
+
+api.add_resource(
+	WikiDocumentRevisionResource,
 	"/documents/<string:title>/<string:revision>",
 	resource_class_kwargs = {
 		"wiki_store": wiki_store

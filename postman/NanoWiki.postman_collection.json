@@ -67,14 +67,14 @@
 				],
 				"body": {},
 				"url": {
-					"raw": "{{base-url}}/documents/{{doc-a-title}}/{{doc-a-timestamp-a}}",
+					"raw": "{{base-url}}/documents/{{doc-a-title}}/{{doc-a-revision-a}}",
 					"host": [
 						"{{base-url}}"
 					],
 					"path": [
 						"documents",
 						"{{doc-a-title}}",
-						"{{doc-a-timestamp-a}}"
+						"{{doc-a-revision-a}}"
 					]
 				},
 				"description": ""
@@ -180,20 +180,20 @@
 	],
 	"variable": [
 		{
-			"id": "26bea64b-cef9-438b-8f44-2f910f995958",
+			"id": "63ef5346-e6e2-4aff-9d81-937c26efbccb",
 			"key": "base-url",
 			"value": "http://localhost:5000",
 			"type": "text"
 		},
 		{
-			"id": "bb7681c3-d447-4528-8455-9870171b6cd7",
+			"id": "f43dea4e-0e2c-4c32-a3a0-f967dfa1eb8c",
 			"key": "doc-a-title",
 			"value": "foo",
 			"type": "text"
 		},
 		{
-			"id": "f8bd714c-fc8a-46e8-8d1c-13fbaf2f9928",
-			"key": "doc-a-timestamp-a",
+			"id": "11d4e178-b756-4cec-a620-f325c5095a4b",
+			"key": "doc-a-revision-a",
 			"value": "bar",
 			"type": "text"
 		}
